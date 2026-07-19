@@ -6,6 +6,8 @@ import '../models/user_model.dart';
 import '../models/metrics_model.dart';
 import '../models/review_cycle_model.dart';
 import '../models/evaluation_model.dart';
+import '../models/talent_matrix_model.dart';
+import 'standardization_dashboard.dart';
 import '../auth/login_screen.dart';
 
 class CeoDashboard extends StatefulWidget {
@@ -34,12 +36,17 @@ class _CeoDashboardState extends State<CeoDashboard> {
   bool _isLoadingEvaluations = false;
   List<EvaluationModel> _evaluations = [];
 
+  bool _isLoadingTalentMatrix = false;
+  List<TalentMatrixModel> _talentMatrix = [];
+  TalentMatrixModel? _selectedEmployee;
+
   final List<String> _titles = [
     'CEO Overview',
     'Employees Directory',
     'Managers Directory',
     'Review Cycles',
-    'Submitted Evaluations'
+    'Submitted Evaluations',
+    'Performance Standardization'
   ];
 
   @override
@@ -69,18 +76,32 @@ class _CeoDashboardState extends State<CeoDashboard> {
       case 4:
         _fetchEvaluations();
         break;
+      case 5:
+        // Handled within StandardizationDashboard itself
+        break;
     }
   }
 
   Future<void> _fetchMetrics() async {
-    setState(() { _isLoadingMetrics = true; });
+    setState(() { 
+      _isLoadingMetrics = true; 
+      _isLoadingTalentMatrix = true; 
+    });
     try {
       final data = await _apiClient.getCeoMetrics();
-      setState(() { _metrics = data; });
+      final matrixData = await _apiClient.getTalentMatrix();
+      setState(() { 
+        _metrics = data; 
+        _talentMatrix = matrixData;
+        _selectedEmployee = null; // Reset selection
+      });
     } catch (e) {
-      _showErrorSnackBar('Failed to load metrics summary.');
+      _showErrorSnackBar('Failed to load dashboard metrics summary.');
     } finally {
-      setState(() { _isLoadingMetrics = false; });
+      setState(() { 
+        _isLoadingMetrics = false; 
+        _isLoadingTalentMatrix = false; 
+      });
     }
   }
 
@@ -179,6 +200,7 @@ class _CeoDashboardState extends State<CeoDashboard> {
             _buildDrawerItem(2, 'Managers List', Icons.supervised_user_circle_outlined),
             _buildDrawerItem(3, 'Review Cycles', Icons.event_note_outlined),
             _buildDrawerItem(4, 'Evaluations Feed', Icons.rate_review_outlined),
+            _buildDrawerItem(5, 'Performance Standardization', Icons.balance_outlined),
             const Spacer(),
             const Divider(),
             ListTile(
@@ -244,6 +266,8 @@ class _CeoDashboardState extends State<CeoDashboard> {
         return _buildCyclesTab();
       case 4:
         return _buildEvaluationsTab();
+      case 5:
+        return const StandardizationDashboard();
       default:
         return const Center(child: Text('View not found'));
     }
@@ -260,32 +284,50 @@ class _CeoDashboardState extends State<CeoDashboard> {
       return const Center(child: Text('Unable to load counts summary data.'));
     }
 
+    // Compute High Performers & Needs Development counts dynamically
+    final int highPerformersCount = _talentMatrix.where((e) => e.performanceRating >= 4 && e.potentialRating >= 4).length;
+    final int needsDevCount = _talentMatrix.where((e) => e.performanceRating <= 2 && e.potentialRating <= 2).length;
+
     return LayoutBuilder(
       builder: (context, constraints) {
-        final crossAxisCount = constraints.maxWidth > 600 ? 4 : 2;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Organization Pulse',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: GridView.count(
+        final isWide = constraints.maxWidth > 900;
+        final crossAxisCount = isWide ? 6 : (constraints.maxWidth > 600 ? 3 : 2);
+        
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Organization Pulse',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+              ),
+              const SizedBox(height: 16),
+              // 6 KPI Grid Cards
+              GridView.count(
                 crossAxisCount: crossAxisCount,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 1.3,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.25,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
                 children: [
                   _buildStatCard('Total Employees', '${metrics.totalEmployees}', Icons.people, Colors.blue),
-                  _buildStatCard('Total Managers', '${metrics.totalManagers}', Icons.supervised_user_circle, Colors.teal),
-                  _buildStatCard('Active Cycles', '${metrics.activeReviewCycles}', Icons.loop, Colors.amber),
-                  _buildStatCard('Evaluations Done', '${metrics.submittedEvaluations}', Icons.fact_check, Colors.indigo),
+                  _buildStatCard('Managers', '${metrics.totalManagers}', Icons.supervised_user_circle, Colors.teal),
+                  _buildStatCard('Active Review Cycles', '${metrics.activeReviewCycles}', Icons.loop, Colors.amber),
+                  _buildStatCard('Completed Evaluations', '${metrics.submittedEvaluations}', Icons.fact_check, Colors.indigo),
+                  _buildStatCard('High Performers', '$highPerformersCount', Icons.star, Colors.green),
+                  _buildStatCard('Needs Development', '$needsDevCount', Icons.warning_amber_rounded, Colors.redAccent),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: 28),
+              // 9-Box Talent Matrix
+              _buildTalentMatrix(),
+              const SizedBox(height: 20),
+              // Selected Employee Details
+              _buildSelectedEmployeeDetails(),
+              const SizedBox(height: 24),
+            ],
+          ),
         );
       },
     );
@@ -296,7 +338,7 @@ class _CeoDashboardState extends State<CeoDashboard> {
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -304,22 +346,284 @@ class _CeoDashboardState extends State<CeoDashboard> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Icon(icon, size: 28, color: color),
+                Icon(icon, size: 24, color: color),
                 Text(
                   count,
-                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Text(
               label,
-              style: const TextStyle(fontSize: 14, color: AppTheme.subtitleColor, fontWeight: FontWeight.w500),
+              style: const TextStyle(fontSize: 11, color: AppTheme.subtitleColor, fontWeight: FontWeight.w500),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildTalentMatrix() {
+    if (_isLoadingTalentMatrix) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24.0),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Talent Distribution Matrix (9-Box Grid)',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Select an employee point to view full organizational insights',
+              style: TextStyle(fontSize: 12, color: AppTheme.subtitleColor),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              height: 380,
+              child: Row(
+                children: [
+                  const Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      RotatedBox(
+                        quarterTurns: 3,
+                        child: Text(
+                          'Potential',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.grey),
+                        ),
+                      ),
+                      Text('High (4-5)', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey)),
+                      Text('Med (3)', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey)),
+                      Text('Low (1-2)', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey)),
+                      SizedBox(height: 24),
+                    ],
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Expanded(child: _buildMatrixCell('Emerging Talent', Colors.orange, Colors.orange.shade900, _filterEmployees(0, 2))),
+                              Expanded(child: _buildMatrixCell('Emerging Talent', Colors.orange, Colors.orange.shade900, _filterEmployees(1, 2))),
+                              Expanded(child: _buildMatrixCell('High Performer', Colors.green, Colors.green.shade900, _filterEmployees(2, 2))),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Expanded(child: _buildMatrixCell('Needs Dev', Colors.red, Colors.red.shade900, _filterEmployees(0, 1))),
+                              Expanded(child: _buildMatrixCell('Core Contributor', Colors.blue, Colors.blue.shade900, _filterEmployees(1, 1))),
+                              Expanded(child: _buildMatrixCell('Core Contributor', Colors.blue, Colors.blue.shade900, _filterEmployees(2, 1))),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Expanded(child: _buildMatrixCell('Needs Dev', Colors.red, Colors.red.shade900, _filterEmployees(0, 0))),
+                              Expanded(child: _buildMatrixCell('Needs Dev', Colors.red, Colors.red.shade900, _filterEmployees(1, 0))),
+                              Expanded(child: _buildMatrixCell('Core Contributor', Colors.blue, Colors.blue.shade900, _filterEmployees(2, 0))),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            const Expanded(child: Center(child: Text('Low (1-2)', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey)))),
+                            const Expanded(child: Center(child: Text('Med (3)', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey)))),
+                            const Expanded(child: Center(child: Text('High (4-5)', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey)))),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        const Text(
+                          'Performance',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMatrixCell(String title, Color bgColor, Color textColor, List<TalentMatrixModel> employees) {
+    return Container(
+      margin: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: bgColor.withValues(alpha: 0.06),
+        border: Border.all(color: bgColor.withValues(alpha: 0.25), width: 1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(6.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: textColor),
+            ),
+            const SizedBox(height: 4),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Wrap(
+                  spacing: 4,
+                  runSpacing: 4,
+                  children: employees.map((emp) {
+                    final isSelected = _selectedEmployee == emp;
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedEmployee = emp;
+                        });
+                      },
+                      child: Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: isSelected ? textColor : bgColor.withValues(alpha: 0.8),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isSelected ? Colors.black87 : Colors.white,
+                            width: isSelected ? 2 : 1,
+                          ),
+                          boxShadow: isSelected
+                              ? [const BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 1))]
+                              : null,
+                        ),
+                        child: Center(
+                          child: Text(
+                            _getInitials(emp.employeeName),
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : Colors.black87,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSelectedEmployeeDetails() {
+    final emp = _selectedEmployee;
+    if (emp == null) return const SizedBox.shrink();
+    
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: const Color(0xFFF8FAFC),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  emp.employeeName,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () {
+                    setState(() {
+                      _selectedEmployee = null;
+                    });
+                  },
+                ),
+              ],
+            ),
+            const Divider(),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(child: _buildDetailField('Department', emp.department)),
+                Expanded(child: _buildDetailField('Assigned Manager', emp.managerName)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(child: _buildDetailField('Performance Rating', '${emp.performanceRating} / 5')),
+                Expanded(child: _buildDetailField('Potential Rating', '${emp.potentialRating} / 5')),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildDetailField('Latest Review Cycle', emp.reviewCycle),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailField(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+        const SizedBox(height: 2),
+        Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87)),
+      ],
+    );
+  }
+
+  List<TalentMatrixModel> _filterEmployees(int xIndex, int yIndex) {
+    return _talentMatrix.where((emp) {
+      int getXIndex(int rating) {
+        if (rating <= 2) return 0;
+        if (rating == 3) return 1;
+        return 2;
+      }
+      int getYIndex(int rating) {
+        if (rating <= 2) return 0;
+        if (rating == 3) return 1;
+        return 2;
+      }
+      return getXIndex(emp.performanceRating) == xIndex && getYIndex(emp.potentialRating) == yIndex;
+    }).toList();
+  }
+
+  String _getInitials(String name) {
+    final parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    }
+    return name.isNotEmpty ? name[0].toUpperCase() : '';
   }
 
   // --- EMPLOYEES TAB ---

@@ -5,6 +5,8 @@ import '../../core/theme/app_theme.dart';
 import '../models/user_model.dart';
 import '../models/evaluation_model.dart';
 import '../models/review_cycle_model.dart';
+import '../models/radar_data_model.dart';
+import 'radar_chart_widget.dart';
 import '../auth/login_screen.dart';
 
 class EmployeeDashboard extends StatefulWidget {
@@ -35,6 +37,10 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
 
   ReviewCycleModel? _activeCycle;
 
+  bool _isLoadingRadar = false;
+  List<RadarDataModel> _radarDataList = [];
+  int _selectedRadarIndex = -1;
+
   final List<String> _titles = [
     'Employee Workspace',
     'My Profile',
@@ -57,6 +63,7 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
       case 0:
         _fetchProfile();
         _fetchEvaluations();
+        _fetchRadarData();
         break;
       case 1:
         _fetchProfile();
@@ -100,6 +107,25 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
       _showErrorSnackBar('Unable to Load Evaluations');
     } finally {
       setState(() { _isLoadingEvaluations = false; });
+    }
+  }
+
+  Future<void> _fetchRadarData() async {
+    setState(() { _isLoadingRadar = true; });
+    try {
+      final data = await _apiClient.getEmployeePerformanceRadar(widget.employeeId);
+      setState(() {
+        _radarDataList = data;
+        if (data.isNotEmpty) {
+          _selectedRadarIndex = 0; // Default to latest review cycle
+        } else {
+          _selectedRadarIndex = -1;
+        }
+      });
+    } catch (e) {
+      _showErrorSnackBar('Failed to load performance competency data.');
+    } finally {
+      setState(() { _isLoadingRadar = false; });
     }
   }
 
@@ -328,6 +354,145 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
               );
             },
           ),
+          const SizedBox(height: 28),
+          const Divider(),
+          const SizedBox(height: 16),
+          const Text(
+            'Competency Radar Insights',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+          ),
+          const SizedBox(height: 12),
+          _isLoadingRadar
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24.0),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              : _radarDataList.isEmpty
+                  ? Card(
+                      elevation: 1,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      child: const Padding(
+                        padding: EdgeInsets.all(24.0),
+                        child: Center(
+                          child: Column(
+                            children: [
+                              Icon(Icons.radar_outlined, size: 48, color: Colors.grey),
+                              SizedBox(height: 12),
+                              Text(
+                                'No detailed manager evaluations found yet.',
+                                style: TextStyle(color: Colors.grey, fontSize: 14),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    )
+                  : Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            DropdownButtonFormField<int>(
+                              value: _selectedRadarIndex,
+                              decoration: InputDecoration(
+                                labelText: 'Select Review Cycle',
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              ),
+                              items: List.generate(_radarDataList.length, (index) {
+                                final rd = _radarDataList[index];
+                                return DropdownMenuItem(
+                                  value: index,
+                                  child: Text(rd.reviewCycle),
+                                );
+                              }),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setState(() {
+                                    _selectedRadarIndex = val;
+                                  });
+                                }
+                              },
+                            ),
+                            const SizedBox(height: 24),
+                            Center(
+                              child: SizedBox(
+                                height: 260,
+                                width: 260,
+                                child: RadarChartWidget(
+                                  competencyScores: _radarDataList[_selectedRadarIndex].competencyScores,
+                                  size: 260,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            const Divider(),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Overall Performance',
+                                        style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      _buildStars(_radarDataList[_selectedRadarIndex].performanceRating),
+                                    ],
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Overall Potential',
+                                        style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      _buildStars(_radarDataList[_selectedRadarIndex].potentialRating),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Manager Comments / Feedback',
+                              style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
+                            ),
+                            const SizedBox(height: 6),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                _radarDataList[_selectedRadarIndex].managerComments ?? 'No feedback comments provided.',
+                                style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Colors.black87),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                'Evaluated on: ${_formatDate(_radarDataList[_selectedRadarIndex].reviewDate)}',
+                                style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
         ],
       ),
     );

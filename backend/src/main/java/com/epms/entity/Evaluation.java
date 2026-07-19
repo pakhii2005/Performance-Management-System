@@ -35,6 +35,30 @@ public class Evaluation {
     @Column(nullable = false)
     private Integer potentialRating;
 
+    @Column
+    private Integer communicationScore;
+
+    @Column
+    private Integer technicalSkillScore;
+
+    @Column
+    private Integer problemSolvingScore;
+
+    @Column
+    private Integer leadershipScore;
+
+    @Column
+    private Integer teamworkScore;
+
+    @Column
+    private Integer adaptabilityScore;
+
+    @Column
+    private Integer customerFocusScore;
+
+    @Column
+    private Integer innovationScore;
+
     @Column(length = 2000)
     private String managerComments;
 

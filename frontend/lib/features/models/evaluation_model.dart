@@ -8,6 +8,14 @@ class EvaluationModel {
   final String reviewCycleTitle;
   final int performanceRating;
   final int potentialRating;
+  final int? communicationScore;
+  final int? technicalSkillScore;
+  final int? problemSolvingScore;
+  final int? leadershipScore;
+  final int? teamworkScore;
+  final int? adaptabilityScore;
+  final int? customerFocusScore;
+  final int? innovationScore;
   final String? managerComments;
   final String submittedDate;
 
@@ -21,6 +29,14 @@ class EvaluationModel {
     required this.reviewCycleTitle,
     required this.performanceRating,
     required this.potentialRating,
+    this.communicationScore,
+    this.technicalSkillScore,
+    this.problemSolvingScore,
+    this.leadershipScore,
+    this.teamworkScore,
+    this.adaptabilityScore,
+    this.customerFocusScore,
+    this.innovationScore,
     this.managerComments,
     required this.submittedDate,
   });
@@ -36,6 +52,14 @@ class EvaluationModel {
       reviewCycleTitle: json['reviewCycleTitle'] as String? ?? 'N/A',
       performanceRating: json['performanceRating'] as int,
       potentialRating: json['potentialRating'] as int,
+      communicationScore: json['communicationScore'] as int?,
+      technicalSkillScore: json['technicalSkillScore'] as int?,
+      problemSolvingScore: json['problemSolvingScore'] as int?,
+      leadershipScore: json['leadershipScore'] as int?,
+      teamworkScore: json['teamworkScore'] as int?,
+      adaptabilityScore: json['adaptabilityScore'] as int?,
+      customerFocusScore: json['customerFocusScore'] as int?,
+      innovationScore: json['innovationScore'] as int?,
       managerComments: json['managerComments'] as String?,
       submittedDate: json['submittedDate'] as String,
     );

@@ -8,6 +8,10 @@ import '../../features/models/review_cycle_model.dart';
 import '../../features/models/evaluation_model.dart';
 import '../../features/models/manager_metrics_model.dart';
 import '../../features/models/team_employee_model.dart';
+import '../../features/models/talent_matrix_model.dart';
+import '../../features/models/team_average_model.dart';
+import '../../features/models/radar_data_model.dart';
+import '../../features/models/standardization_models.dart';
 
 class ApiClient {
   final http.Client _client;
@@ -203,6 +207,14 @@ class ApiClient {
     required int performanceRating,
     required int potentialRating,
     required String managerComments,
+    required int communicationScore,
+    required int technicalSkillScore,
+    required int problemSolvingScore,
+    required int leadershipScore,
+    required int teamworkScore,
+    required int adaptabilityScore,
+    required int customerFocusScore,
+    required int innovationScore,
   }) async {
     final uri = Uri.parse('${ApiConstants.baseUrl}/api/evaluations');
     final response = await _client.post(
@@ -215,6 +227,14 @@ class ApiClient {
         'performanceRating': performanceRating,
         'potentialRating': potentialRating,
         'managerComments': managerComments,
+        'communicationScore': communicationScore,
+        'technicalSkillScore': technicalSkillScore,
+        'problemSolvingScore': problemSolvingScore,
+        'leadershipScore': leadershipScore,
+        'teamworkScore': teamworkScore,
+        'adaptabilityScore': adaptabilityScore,
+        'customerFocusScore': customerFocusScore,
+        'innovationScore': innovationScore,
       }),
     ).timeout(const Duration(seconds: 10));
 
@@ -255,6 +275,97 @@ class ApiClient {
       return list.map((item) => EvaluationModel.fromJson(item as Map<String, dynamic>)).toList();
     } else {
       throw Exception('Unable to Load Evaluations');
+    }
+  }
+
+  /// Retrieves CEO overview dashboard talent matrix points.
+  Future<List<TalentMatrixModel>> getTalentMatrix() async {
+    final uri = Uri.parse('${ApiConstants.baseUrl}/api/analytics/talent-matrix');
+    final response = await _client.get(uri).timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 200) {
+      final list = jsonDecode(response.body) as List<dynamic>;
+      return list.map((item) => TalentMatrixModel.fromJson(item as Map<String, dynamic>)).toList();
+    } else {
+      throw Exception('Failed to load talent matrix');
+    }
+  }
+
+  /// Retrieves Team average performance and potential ratings for manager evaluation workspace.
+  Future<TeamAverageModel> getTeamAverage(int managerId) async {
+    final uri = Uri.parse('${ApiConstants.baseUrl}/api/analytics/team-average/$managerId');
+    final response = await _client.get(uri).timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 200) {
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      return TeamAverageModel.fromJson(body);
+    } else {
+      throw Exception('Failed to load team average insights');
+    }
+  }
+
+  /// Retrieves employee competency radar data points across review cycles.
+  Future<List<RadarDataModel>> getEmployeePerformanceRadar(int employeeId) async {
+    final uri = Uri.parse('${ApiConstants.baseUrl}/api/employees/$employeeId/performance-radar');
+    final response = await _client.get(uri).timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 200) {
+      final list = jsonDecode(response.body) as List<dynamic>;
+      return list.map((item) => RadarDataModel.fromJson(item as Map<String, dynamic>)).toList();
+    } else {
+      throw Exception('Failed to load employee competency radar data');
+    }
+  }
+
+  /// Retrieves company-wide performance calibration summary.
+  Future<CompanySummaryModel> getCompanySummary() async {
+    final uri = Uri.parse('${ApiConstants.baseUrl}/api/analytics/company-summary');
+    final response = await _client.get(uri).timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 200) {
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      return CompanySummaryModel.fromJson(body);
+    } else {
+      throw Exception('Failed to load company calibration summary');
+    }
+  }
+
+  /// Retrieves all managers calibration statistics.
+  Future<List<ManagerCalibrationModel>> getManagerCalibration() async {
+    final uri = Uri.parse('${ApiConstants.baseUrl}/api/analytics/manager-calibration');
+    final response = await _client.get(uri).timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 200) {
+      final list = jsonDecode(response.body) as List<dynamic>;
+      return list.map((item) => ManagerCalibrationModel.fromJson(item as Map<String, dynamic>)).toList();
+    } else {
+      throw Exception('Failed to load manager calibration statistics');
+    }
+  }
+
+  /// Retrieves department performance summary metrics.
+  Future<List<DepartmentSummaryModel>> getDepartmentSummary() async {
+    final uri = Uri.parse('${ApiConstants.baseUrl}/api/analytics/department-summary');
+    final response = await _client.get(uri).timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 200) {
+      final list = jsonDecode(response.body) as List<dynamic>;
+      return list.map((item) => DepartmentSummaryModel.fromJson(item as Map<String, dynamic>)).toList();
+    } else {
+      throw Exception('Failed to load department summaries');
+    }
+  }
+
+  /// Retrieves executive observations and insights generated from evaluation calibrations.
+  Future<List<String>> getExecutiveInsights() async {
+    final uri = Uri.parse('${ApiConstants.baseUrl}/api/analytics/executive-insights');
+    final response = await _client.get(uri).timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 200) {
+      final list = jsonDecode(response.body) as List<dynamic>;
+      return List<String>.from(list);
+    } else {
+      throw Exception('Failed to load executive insights');
     }
   }
 }

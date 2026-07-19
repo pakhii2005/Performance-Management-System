@@ -19,6 +19,14 @@ public class EvaluationResponse {
     private String reviewCycleTitle;
     private Integer performanceRating;
     private Integer potentialRating;
+    private Integer communicationScore;
+    private Integer technicalSkillScore;
+    private Integer problemSolvingScore;
+    private Integer leadershipScore;
+    private Integer teamworkScore;
+    private Integer adaptabilityScore;
+    private Integer customerFocusScore;
+    private Integer innovationScore;
     private String managerComments;
     private LocalDateTime submittedDate;
 }
