@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.epms.frontend"
-    compileSdk = 34
+    compileSdk = 35
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
