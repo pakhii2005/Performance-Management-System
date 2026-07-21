@@ -182,12 +182,15 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.redAccent),
               title: const Text('Logout', style: TextStyle(color: Colors.redAccent)),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(context); // Close drawer
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                );
+                await _apiClient.logout();
+                if (mounted) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  );
+                }
               },
             ),
             const SizedBox(height: 12),

@@ -21,4 +21,6 @@ public class UserResponse {
     private String managerName;
     private Integer employeeCount;
     private LocalDateTime createdAt;
+    private Boolean enabled;
+    private Boolean passwordResetRequired;
 }

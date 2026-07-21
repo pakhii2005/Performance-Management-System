@@ -39,11 +39,14 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
   List<EvaluationModel> _reviews = [];
 
   ReviewCycleModel? _activeCycle;
+  bool _isLoadingCycles = false;
+  List<ReviewCycleModel> _cycles = [];
 
   final List<String> _titles = [
     'Manager Workspace',
     'My Reporting Team',
-    'Submitted Evaluations'
+    'Submitted Evaluations',
+    'Review Cycles'
   ];
 
   @override
@@ -68,6 +71,9 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
       case 2:
         _fetchReviews();
         break;
+      case 3:
+        _fetchCycles();
+        break;
     }
   }
 
@@ -80,6 +86,18 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
       });
     } catch (_) {
       // Safely handle if no active cycle is defined
+    }
+  }
+
+  Future<void> _fetchCycles() async {
+    setState(() { _isLoadingCycles = true; });
+    try {
+      final list = await _apiClient.getReviewCycles();
+      setState(() { _cycles = list; });
+    } catch (_) {
+      _showErrorSnackBar('Failed to load review cycles.');
+    } finally {
+      setState(() { _isLoadingCycles = false; });
     }
   }
 
@@ -167,17 +185,21 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
             _buildDrawerItem(0, 'Overview Dashboard', Icons.dashboard_outlined),
             _buildDrawerItem(1, 'My Reporting Team', Icons.people_outline),
             _buildDrawerItem(2, 'Submitted Reviews', Icons.rate_review_outlined),
+            _buildDrawerItem(3, 'Review Cycles', Icons.event_note_outlined),
             const Spacer(),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.redAccent),
               title: const Text('Logout', style: TextStyle(color: Colors.redAccent)),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(context); // Close drawer
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                );
+                await _apiClient.logout();
+                if (mounted) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  );
+                }
               },
             ),
             const SizedBox(height: 12),
@@ -220,6 +242,8 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
         return _buildTeamTab();
       case 2:
         return _buildReviewsTab();
+      case 3:
+        return _buildCyclesTab();
       default:
         return const Center(child: Text('View not found'));
     }
@@ -530,5 +554,73 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
     } catch (_) {
       return dateStr;
     }
+  }
+
+  Widget _buildCyclesTab() {
+    if (_isLoadingCycles) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_cycles.isEmpty) {
+      return const Center(child: Text('No review cycles created yet.'));
+    }
+
+    return ListView.builder(
+      itemCount: _cycles.length,
+      itemBuilder: (context, index) {
+        final cycle = _cycles[index];
+        final isActive = cycle.status == 'ACTIVE';
+        
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        cycle.title,
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isActive ? const Color(0xFFDCFCE7) : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        cycle.status,
+                        style: TextStyle(
+                          color: isActive ? const Color(0xFF15803D) : Colors.grey,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (cycle.description != null && cycle.description!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(cycle.description!, style: const TextStyle(fontSize: 13, color: AppTheme.subtitleColor)),
+                ],
+                const Divider(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Start: ${_formatDate(cycle.startDate)}', style: const TextStyle(fontSize: 12, color: Colors.black87)),
+                    Text('End: ${_formatDate(cycle.endDate)}', style: const TextStyle(fontSize: 12, color: Colors.black87)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }

@@ -1,5 +1,6 @@
 package com.epms.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import com.epms.dto.ReviewCycleRequest;
 import com.epms.dto.ReviewCycleResponse;
 import com.epms.service.ReviewCycleService;
@@ -20,18 +21,21 @@ public class ReviewCycleController {
     private final ReviewCycleService reviewCycleService;
 
     @PostMapping
+    @PreAuthorize("hasRole('CEO')")
     public ResponseEntity<ReviewCycleResponse> createReviewCycle(@Valid @RequestBody ReviewCycleRequest request) {
         ReviewCycleResponse response = reviewCycleService.save(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('CEO', 'MANAGER', 'EMPLOYEE')")
     public ResponseEntity<List<ReviewCycleResponse>> getAllReviewCycles() {
         List<ReviewCycleResponse> cycles = reviewCycleService.findAll();
         return ResponseEntity.ok(cycles);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('CEO', 'MANAGER', 'EMPLOYEE')")
     public ResponseEntity<ReviewCycleResponse> getReviewCycleById(@PathVariable Long id) {
         ReviewCycleResponse cycle = reviewCycleService.findById(id);
         return ResponseEntity.ok(cycle);

@@ -1,5 +1,6 @@
 package com.epms.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import com.epms.dto.DashboardMetricsResponse;
 import com.epms.entity.ReviewCycleStatus;
 import com.epms.entity.Role;
@@ -24,19 +25,25 @@ public class CeoMetricsController {
     private final EvaluationRepository evaluationRepository;
 
     @GetMapping("/metrics")
+    @PreAuthorize("hasRole('CEO')")
     public ResponseEntity<DashboardMetricsResponse> getMetrics() {
         long totalEmployees = userRepository.countByRole(Role.EMPLOYEE);
         long totalManagers = userRepository.countByRole(Role.MANAGER);
         long activeCycles = reviewCycleRepository.countByStatus(ReviewCycleStatus.ACTIVE);
-        long submittedEvaluations = evaluationRepository.count();
+        long totalEvaluations = evaluationRepository.count();
+        long totalUsers = userRepository.count();
+        long activeUsers = userRepository.countByEnabled(true);
+        long inactiveUsers = userRepository.countByEnabled(false);
 
-        DashboardMetricsResponse metrics = DashboardMetricsResponse.builder()
+        DashboardMetricsResponse response = DashboardMetricsResponse.builder()
                 .totalEmployees(totalEmployees)
                 .totalManagers(totalManagers)
                 .activeReviewCycles(activeCycles)
-                .submittedEvaluations(submittedEvaluations)
+                .submittedEvaluations(totalEvaluations)
+                .totalUsers(totalUsers)
+                .activeUsers(activeUsers)
+                .inactiveUsers(inactiveUsers)
                 .build();
-
-        return ResponseEntity.ok(metrics);
+        return ResponseEntity.ok(response);
     }
 }

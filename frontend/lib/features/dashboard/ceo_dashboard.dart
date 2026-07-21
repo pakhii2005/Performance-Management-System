@@ -9,6 +9,9 @@ import '../models/evaluation_model.dart';
 import '../models/talent_matrix_model.dart';
 import 'standardization_dashboard.dart';
 import '../auth/login_screen.dart';
+import 'register_dialog.dart';
+import 'user_management_screen.dart';
+import 'create_user_screen.dart';
 
 class CeoDashboard extends StatefulWidget {
   const CeoDashboard({super.key});
@@ -46,7 +49,8 @@ class _CeoDashboardState extends State<CeoDashboard> {
     'Managers Directory',
     'Review Cycles',
     'Submitted Evaluations',
-    'Performance Standardization'
+    'Performance Standardization',
+    'User Management'
   ];
 
   @override
@@ -63,6 +67,7 @@ class _CeoDashboardState extends State<CeoDashboard> {
     switch (index) {
       case 0:
         _fetchMetrics();
+        _fetchManagers();
         break;
       case 1:
         _fetchEmployees();
@@ -78,6 +83,9 @@ class _CeoDashboardState extends State<CeoDashboard> {
         break;
       case 5:
         // Handled within StandardizationDashboard itself
+        break;
+      case 6:
+        _fetchManagers();
         break;
     }
   }
@@ -165,6 +173,29 @@ class _CeoDashboardState extends State<CeoDashboard> {
     }
   }
 
+  void _showSuccessSnackBar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  void _showRegisterUserDialog(String role) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (_) => RegisterDialog(managers: _managers, initialRole: role),
+    );
+    if (result == true) {
+      _showSuccessSnackBar('$role registered successfully.');
+      _loadTabContent(_currentIndex);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -201,17 +232,21 @@ class _CeoDashboardState extends State<CeoDashboard> {
             _buildDrawerItem(3, 'Review Cycles', Icons.event_note_outlined),
             _buildDrawerItem(4, 'Evaluations Feed', Icons.rate_review_outlined),
             _buildDrawerItem(5, 'Performance Standardization', Icons.balance_outlined),
+            _buildDrawerItem(6, 'User Management', Icons.manage_accounts_outlined),
             const Spacer(),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.redAccent),
               title: const Text('Logout', style: TextStyle(color: Colors.redAccent)),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(context); // Close drawer
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                );
+                await _apiClient.logout();
+                if (mounted) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  );
+                }
               },
             ),
             const SizedBox(height: 12),
@@ -224,14 +259,31 @@ class _CeoDashboardState extends State<CeoDashboard> {
           child: _buildBody(),
         ),
       ),
-      floatingActionButton: _currentIndex == 3
+      floatingActionButton: _currentIndex == 1
           ? FloatingActionButton(
-              onPressed: _showCreateCycleDialog,
+              onPressed: () => _showRegisterUserDialog('EMPLOYEE'),
               backgroundColor: AppTheme.primaryColor,
               foregroundColor: Colors.white,
-              child: const Icon(Icons.add),
+              tooltip: 'Register Employee',
+              child: const Icon(Icons.person_add_alt_1_rounded),
             )
-          : null,
+          : _currentIndex == 2
+              ? FloatingActionButton(
+                  onPressed: () => _showRegisterUserDialog('MANAGER'),
+                  backgroundColor: AppTheme.primaryColor,
+                  foregroundColor: Colors.white,
+                  tooltip: 'Register Manager',
+                  child: const Icon(Icons.group_add_rounded),
+                )
+              : _currentIndex == 3
+                  ? FloatingActionButton(
+                      onPressed: _showCreateCycleDialog,
+                      backgroundColor: AppTheme.primaryColor,
+                      foregroundColor: Colors.white,
+                      tooltip: 'Create Review Cycle',
+                      child: const Icon(Icons.add),
+                    )
+                  : null,
     );
   }
 
@@ -268,6 +320,8 @@ class _CeoDashboardState extends State<CeoDashboard> {
         return _buildEvaluationsTab();
       case 5:
         return const StandardizationDashboard();
+      case 6:
+        return const UserManagementScreen();
       default:
         return const Center(child: Text('View not found'));
     }
@@ -325,11 +379,86 @@ class _CeoDashboardState extends State<CeoDashboard> {
               const SizedBox(height: 20),
               // Selected Employee Details
               _buildSelectedEmployeeDetails(),
+              const Divider(height: 40),
+              _buildUserManagementOverviewSection(metrics),
               const SizedBox(height: 24),
             ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildUserManagementOverviewSection(MetricsModel metrics) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'User Directory Summary',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+        ),
+        const SizedBox(height: 16),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth > 600;
+            return GridView.count(
+              crossAxisCount: isWide ? 3 : 1,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: isWide ? 2.5 : 4,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              children: [
+                _buildStatCard('Total Users', '${metrics.totalUsers}', Icons.supervised_user_circle_outlined, Colors.indigo),
+                _buildStatCard('Active Users', '${metrics.activeUsers}', Icons.check_circle_outline, Colors.green),
+                _buildStatCard('Inactive Users', '${metrics.inactiveUsers}', Icons.block_flipped, Colors.red),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 20),
+        // Action Buttons
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            ElevatedButton.icon(
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => CreateUserScreen(managers: _managers)),
+                );
+                if (result == true) {
+                  _showSuccessSnackBar('User registered successfully.');
+                  _fetchMetrics();
+                  _fetchManagers();
+                }
+              },
+              icon: const Icon(Icons.person_add_alt_1),
+              label: const Text('Register User', style: TextStyle(fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            OutlinedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _currentIndex = 6;
+                });
+              },
+              icon: const Icon(Icons.folder_shared_rounded),
+              label: const Text('View Users Directory', style: TextStyle(fontWeight: FontWeight.bold)),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -496,33 +625,40 @@ class _CeoDashboardState extends State<CeoDashboard> {
                   runSpacing: 4,
                   children: employees.map((emp) {
                     final isSelected = _selectedEmployee == emp;
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _selectedEmployee = emp;
-                        });
-                      },
-                      child: Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: isSelected ? textColor : bgColor.withValues(alpha: 0.8),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isSelected ? Colors.black87 : Colors.white,
-                            width: isSelected ? 2 : 1,
-                          ),
-                          boxShadow: isSelected
-                              ? [const BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 1))]
-                              : null,
-                        ),
-                        child: Center(
-                          child: Text(
-                            _getInitials(emp.employeeName),
-                            style: TextStyle(
-                              color: isSelected ? Colors.white : Colors.black87,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                    return Tooltip(
+                      message: '${emp.employeeName} (${emp.department})\nPerformance: ${emp.performanceRating}/5 | Potential: ${emp.potentialRating}/5',
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            setState(() {
+                              _selectedEmployee = emp;
+                            });
+                          },
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: isSelected ? textColor : bgColor.withValues(alpha: 0.8),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: isSelected ? Colors.black87 : Colors.white,
+                                width: isSelected ? 2 : 1,
+                              ),
+                              boxShadow: isSelected
+                                  ? [const BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 1))]
+                                  : null,
+                            ),
+                            child: Center(
+                              child: Text(
+                                _getInitials(emp.employeeName),
+                                style: TextStyle(
+                                  color: isSelected ? Colors.white : Colors.black87,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           ),
                         ),

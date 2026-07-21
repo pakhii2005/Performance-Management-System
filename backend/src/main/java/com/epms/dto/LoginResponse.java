@@ -14,4 +14,8 @@ public class LoginResponse {
     private String lastName;
     private String email;
     private Role role;
+    private String accessToken;
+    private String refreshToken;
+    private Long expiresIn;
+    private Boolean passwordResetRequired;
 }

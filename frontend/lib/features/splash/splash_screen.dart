@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../core/network/api_client.dart';
+import '../../core/network/auth_storage.dart';
 import '../../core/theme/app_theme.dart';
+import '../auth/login_screen.dart';
+import '../dashboard/ceo_dashboard.dart';
+import '../dashboard/manager_dashboard.dart';
+import '../dashboard/employee_dashboard.dart';
+import '../models/user_model.dart';
 
 enum ConnectionStatus { loading, connected, failed }
 
@@ -26,14 +32,58 @@ class _SplashScreenState extends State<SplashScreen> {
       _status = ConnectionStatus.loading;
     });
 
-    // Small delay to make the transition smooth and visible
     await Future.delayed(const Duration(seconds: 1));
 
     final isConnected = await _apiClient.checkBackendHealth();
 
-    if (mounted) {
+    if (!mounted) return;
+
+    if (isConnected) {
       setState(() {
-        _status = isConnected ? ConnectionStatus.connected : ConnectionStatus.failed;
+        _status = ConnectionStatus.connected;
+      });
+
+      // Small delay to let user see "Connected" status briefly
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return;
+
+      // Check local session
+      final token = await AuthStorage.getAccessToken();
+      final user = await AuthStorage.getUser();
+      final isExpired = await AuthStorage.isTokenExpired();
+
+      if (token != null && user != null && !isExpired && user.passwordResetRequired != true) {
+        Widget dashboard;
+        if (user.role == 'CEO') {
+          dashboard = const CeoDashboard();
+        } else if (user.role == 'MANAGER') {
+          dashboard = ManagerDashboard(
+            managerId: user.id,
+            managerName: '${user.firstName} ${user.lastName}',
+            managerEmail: user.email,
+          );
+        } else {
+          dashboard = EmployeeDashboard(
+            employeeId: user.id,
+            employeeName: '${user.firstName} ${user.lastName}',
+            employeeEmail: user.email,
+          );
+        }
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => dashboard),
+        );
+      } else {
+        // Redirect to login if no session is stored
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
+      }
+    } else {
+      setState(() {
+        _status = ConnectionStatus.failed;
       });
     }
   }
@@ -42,74 +92,81 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const SizedBox(height: 40),
-              
-              // Centered Brand & Logo section
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+        child: SizedBox(
+          width: double.infinity,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 40),
+                
+                // Centered Brand & Logo section
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Centered logo placeholder with elegant enterprise-grade styling
+                      Container(
+                        height: 100,
+                        width: 100,
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor.withValues(alpha: 0.05),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                            width: 2,
+                          ),
+                        ),
+                        child: const Center(
+                          child: Icon(
+                            Icons.insights_rounded,
+                            size: 48,
+                            color: AppTheme.primaryColor,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      
+                      // Application Title
+                      Text(
+                        'Enterprise Performance\nManagement System',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.headlineMedium,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'EPMS • Foundation Phase 1',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                ),
+  
+                // Connection Status indicators at the bottom
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Centered logo placeholder with elegant enterprise-grade styling
-                    Container(
-                      height: 100,
-                      width: 100,
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withValues(alpha: 0.05),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                          width: 2,
-                        ),
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.insights_rounded,
-                          size: 48,
-                          color: AppTheme.primaryColor,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 32),
+                    _buildStatusWidget(),
+                    const SizedBox(height: 24),
                     
-                    // Application Title
+                    // Clean enterprise footer
                     Text(
-                      'Enterprise Performance\nManagement System',
+                      '© ${DateTime.now().year} EPMS Inc. All rights reserved.',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineMedium,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.subtitleColor,
+                        letterSpacing: 0.2,
+                      ),
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'EPMS • Foundation Phase 1',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
+                    const SizedBox(height: 24),
                   ],
                 ),
-              ),
-
-              // Connection Status indicators at the bottom
-              Column(
-                children: [
-                  _buildStatusWidget(),
-                  const SizedBox(height: 24),
-                  
-                  // Clean enterprise footer
-                  Text(
-                    '© ${DateTime.now().year} EPMS Inc. All rights reserved.',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppTheme.subtitleColor,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

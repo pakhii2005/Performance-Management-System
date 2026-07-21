@@ -61,7 +61,7 @@ class EvaluationModel {
       customerFocusScore: json['customerFocusScore'] as int?,
       innovationScore: json['innovationScore'] as int?,
       managerComments: json['managerComments'] as String?,
-      submittedDate: json['submittedDate'] as String,
+      submittedDate: json['submittedDate'] as String? ?? '',
     );
   }
 }

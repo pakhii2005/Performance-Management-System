@@ -4,6 +4,7 @@ import '../../core/theme/app_theme.dart';
 import '../dashboard/employee_dashboard.dart';
 import '../dashboard/ceo_dashboard.dart';
 import '../dashboard/manager_dashboard.dart';
+import 'force_change_password_dialog.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -44,6 +45,21 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (mounted) {
+        if (user.passwordResetRequired == true) {
+          final changed = await showDialog<bool>(
+            context: context,
+            barrierDismissible: false,
+            builder: (_) => ForceChangePasswordDialog(email: user.email),
+          );
+          if (changed != true) {
+            await _apiClient.logout();
+            setState(() {
+              _isLoading = false;
+            });
+            return;
+          }
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Login Successful'),

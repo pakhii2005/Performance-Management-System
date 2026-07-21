@@ -11,6 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
+
 import java.time.LocalDate;
 import java.util.List;
 
@@ -21,9 +23,21 @@ public class DataInitializer implements CommandLineRunner {
 
     private final UserRepository userRepository;
     private final ReviewCycleRepository reviewCycleRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     @Override
     public void run(String... args) throws Exception {
+        // Ensure existing users have default values for the new columns
+        try {
+            jdbcTemplate.execute("UPDATE users SET enabled = true WHERE enabled IS NULL");
+            jdbcTemplate.execute("UPDATE users SET password_reset_required = false WHERE password_reset_required IS NULL");
+            jdbcTemplate.execute("UPDATE users SET failed_login_attempts = 0 WHERE failed_login_attempts IS NULL");
+            log.info("Database migration completed: Default values populated for enabled, password_reset_required, and failed_login_attempts columns.");
+        } catch (Exception e) {
+            log.warn("Non-critical database migration skipped or already applied: {}", e.getMessage());
+        }
+
         if (userRepository.count() == 0) {
             log.info("Database is empty. Populating sample data for Phase 2...");
 
@@ -32,7 +46,7 @@ public class DataInitializer implements CommandLineRunner {
                     .firstName("Sarah")
                     .lastName("Jenkins")
                     .email("sarah.ceo@epms.com")
-                    .password("securePassword123")
+                    .password(passwordEncoder.encode("securePassword123"))
                     .role(Role.CEO)
                     .department("Executive Office")
                     .build();
@@ -44,7 +58,7 @@ public class DataInitializer implements CommandLineRunner {
                     .firstName("Marcus")
                     .lastName("Vance")
                     .email("marcus.manager@epms.com")
-                    .password("managerPassword456")
+                    .password(passwordEncoder.encode("managerPassword456"))
                     .role(Role.MANAGER)
                     .department("Engineering Management")
                     .build();
@@ -56,7 +70,7 @@ public class DataInitializer implements CommandLineRunner {
                     .firstName("Alice")
                     .lastName("Smith")
                     .email("alice.emp@epms.com")
-                    .password("emp1Password")
+                    .password(passwordEncoder.encode("emp1Password"))
                     .role(Role.EMPLOYEE)
                     .department("Engineering")
                     .manager(savedManager)
@@ -66,7 +80,7 @@ public class DataInitializer implements CommandLineRunner {
                     .firstName("Bob")
                     .lastName("Jones")
                     .email("bob.emp@epms.com")
-                    .password("emp2Password")
+                    .password(passwordEncoder.encode("emp2Password"))
                     .role(Role.EMPLOYEE)
                     .department("Engineering")
                     .manager(savedManager)
@@ -76,7 +90,7 @@ public class DataInitializer implements CommandLineRunner {
                     .firstName("Charlie")
                     .lastName("Brown")
                     .email("charlie.emp@epms.com")
-                    .password("emp3Password")
+                    .password(passwordEncoder.encode("emp3Password"))
                     .role(Role.EMPLOYEE)
                     .department("Quality Assurance")
                     .manager(savedManager)

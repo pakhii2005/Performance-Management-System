@@ -39,6 +39,34 @@ public class User {
 
     private String department;
 
+    @Column(name = "failed_login_attempts")
+    @Builder.Default
+    private Integer failedLoginAttempts = 0;
+
+    @Column(name = "lock_time")
+    private LocalDateTime lockTime;
+
+    @Column(name = "enabled")
+    @Builder.Default
+    private Boolean enabled = true;
+
+    @Column(name = "password_reset_required")
+    @Builder.Default
+    private Boolean passwordResetRequired = false;
+
+    // Custom getters to override Lombok's default behavior and ensure null-safety
+    public Boolean getEnabled() {
+        return enabled == null || enabled;
+    }
+
+    public Boolean getPasswordResetRequired() {
+        return passwordResetRequired != null && passwordResetRequired;
+    }
+
+    public Integer getFailedLoginAttempts() {
+        return failedLoginAttempts == null ? 0 : failedLoginAttempts;
+    }
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "manager_id")
     private User manager;

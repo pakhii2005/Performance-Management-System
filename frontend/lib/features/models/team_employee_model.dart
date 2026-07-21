@@ -17,10 +17,10 @@ class TeamEmployeeModel {
 
   factory TeamEmployeeModel.fromJson(Map<String, dynamic> json) {
     return TeamEmployeeModel(
-      id: json['id'] as int,
-      firstName: json['firstName'] as String,
-      lastName: json['lastName'] as String,
-      email: json['email'] as String,
+      id: json['id'] as int? ?? 0,
+      firstName: json['firstName'] as String? ?? '',
+      lastName: json['lastName'] as String? ?? '',
+      email: json['email'] as String? ?? '',
       department: json['department'] as String?,
       reviewStatus: json['reviewStatus'] as String? ?? 'PENDING',
     );

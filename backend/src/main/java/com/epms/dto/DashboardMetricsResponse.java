@@ -11,4 +11,7 @@ public class DashboardMetricsResponse {
     private long totalManagers;
     private long activeReviewCycles;
     private long submittedEvaluations;
+    private long totalUsers;
+    private long activeUsers;
+    private long inactiveUsers;
 }
