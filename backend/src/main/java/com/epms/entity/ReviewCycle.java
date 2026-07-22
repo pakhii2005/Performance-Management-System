@@ -36,6 +36,10 @@ public class ReviewCycle {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "manager_id")
+    private User manager;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

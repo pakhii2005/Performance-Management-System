@@ -8,6 +8,7 @@ import '../models/evaluation_model.dart';
 import '../models/review_cycle_model.dart';
 import '../auth/login_screen.dart';
 import 'evaluation_form.dart';
+import 'cycle_details_screen.dart';
 
 class ManagerDashboard extends StatefulWidget {
   final int managerId;
@@ -571,52 +572,67 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
         final cycle = _cycles[index];
         final isActive = cycle.status == 'ACTIVE';
         
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        cycle.title,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: isActive ? const Color(0xFFDCFCE7) : const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        cycle.status,
-                        style: TextStyle(
-                          color: isActive ? const Color(0xFF15803D) : Colors.grey,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
+        return GestureDetector(
+          onTap: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => CycleDetailsScreen(
+                  cycleId: cycle.id,
+                  userRole: 'MANAGER',
+                  managers: const [],
+                ),
+              ),
+            );
+            _fetchCycles();
+          },
+          child: Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          cycle.title,
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
                         ),
                       ),
-                    ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isActive ? const Color(0xFFDCFCE7) : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          cycle.status,
+                          style: TextStyle(
+                            color: isActive ? const Color(0xFF15803D) : Colors.grey,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (cycle.description != null && cycle.description!.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(cycle.description!, style: const TextStyle(fontSize: 13, color: AppTheme.subtitleColor)),
                   ],
-                ),
-                if (cycle.description != null && cycle.description!.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(cycle.description!, style: const TextStyle(fontSize: 13, color: AppTheme.subtitleColor)),
+                  const Divider(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Start: ${_formatDate(cycle.startDate)}', style: const TextStyle(fontSize: 12, color: Colors.black87)),
+                      Text('End: ${_formatDate(cycle.endDate)}', style: const TextStyle(fontSize: 12, color: Colors.black87)),
+                    ],
+                  ),
                 ],
-                const Divider(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Start: ${_formatDate(cycle.startDate)}', style: const TextStyle(fontSize: 12, color: Colors.black87)),
-                    Text('End: ${_formatDate(cycle.endDate)}', style: const TextStyle(fontSize: 12, color: Colors.black87)),
-                  ],
-                ),
-              ],
+              ),
             ),
           ),
         );

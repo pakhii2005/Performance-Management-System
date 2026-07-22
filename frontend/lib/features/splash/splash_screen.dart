@@ -6,7 +6,6 @@ import '../auth/login_screen.dart';
 import '../dashboard/ceo_dashboard.dart';
 import '../dashboard/manager_dashboard.dart';
 import '../dashboard/employee_dashboard.dart';
-import '../models/user_model.dart';
 
 enum ConnectionStatus { loading, connected, failed }
 
@@ -176,45 +175,13 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget _buildStatusWidget() {
     switch (_status) {
       case ConnectionStatus.loading:
-        return Column(
-          children: [
-            const SizedBox(
-              height: 24,
-              width: 24,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.5,
-                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.accentColor),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Loading...',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ],
-        );
       case ConnectionStatus.connected:
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFDCFCE7), // Soft green
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: const Color(0xFF86EFAC)),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: const [
-              Icon(Icons.check_circle_rounded, color: Color(0xFF15803D), size: 18),
-              SizedBox(width: 8),
-              Text(
-                'Backend Connected',
-                style: TextStyle(
-                  color: Color(0xFF15803D),
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
-              ),
-            ],
+        return const SizedBox(
+          height: 24,
+          width: 24,
+          child: CircularProgressIndicator(
+            strokeWidth: 2.5,
+            valueColor: AlwaysStoppedAnimation<Color>(AppTheme.accentColor),
           ),
         );
       case ConnectionStatus.failed:

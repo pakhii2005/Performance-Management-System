@@ -274,6 +274,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
                             onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                           ),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          errorMaxLines: 3,
                         ),
                         validator: _validatePasswordStrength,
                       ),
@@ -295,6 +296,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
                             onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
                           ),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          errorMaxLines: 3,
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) return 'Confirm temporary password';

@@ -169,6 +169,7 @@ class _ForceChangePasswordDialogState extends State<ForceChangePasswordDialog> {
                         onPressed: () => setState(() => _obscureNew = !_obscureNew),
                       ),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      errorMaxLines: 3,
                     ),
                     validator: _validatePasswordStrength,
                   ),
@@ -190,6 +191,7 @@ class _ForceChangePasswordDialogState extends State<ForceChangePasswordDialog> {
                         onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
                       ),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      errorMaxLines: 3,
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) return 'Please confirm your new password';

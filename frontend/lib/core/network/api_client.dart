@@ -7,6 +7,7 @@ import 'auth_storage.dart';
 import '../../features/models/user_model.dart';
 import '../../features/models/metrics_model.dart';
 import '../../features/models/review_cycle_model.dart';
+import '../../features/models/review_cycle_details_model.dart';
 import '../../features/models/evaluation_model.dart';
 import '../../features/models/manager_metrics_model.dart';
 import '../../features/models/team_employee_model.dart';
@@ -300,6 +301,7 @@ class ApiClient {
     required String startDate,
     required String endDate,
     required String status,
+    int? managerId,
   }) async {
     final uri = Uri.parse('${ApiConstants.baseUrl}/api/review-cycles');
     final body = {
@@ -308,12 +310,55 @@ class ApiClient {
       'startDate': startDate,
       'endDate': endDate,
       'status': status,
+      if (managerId != null) 'managerId': managerId,
     };
     final response = await _sendRequest('POST', uri, body: body);
 
     if (response.statusCode == 201 || response.statusCode == 200) {
       final body = jsonDecode(response.body) as Map<String, dynamic>;
       return ReviewCycleModel.fromJson(body);
+    } else {
+      throw Exception(_extractErrorMessage(response));
+    }
+  }
+
+  /// Updates an existing Review Cycle.
+  Future<ReviewCycleModel> updateReviewCycle(
+    int id, {
+    required String title,
+    required String description,
+    required String startDate,
+    required String endDate,
+    required String status,
+    int? managerId,
+  }) async {
+    final uri = Uri.parse('${ApiConstants.baseUrl}/api/review-cycles/$id');
+    final body = {
+      'title': title,
+      'description': description,
+      'startDate': startDate,
+      'endDate': endDate,
+      'status': status,
+      'managerId': managerId,
+    };
+    final response = await _sendRequest('PUT', uri, body: body);
+
+    if (response.statusCode == 200) {
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      return ReviewCycleModel.fromJson(body);
+    } else {
+      throw Exception(_extractErrorMessage(response));
+    }
+  }
+
+  /// Retrieves a detailed review cycle with metrics and employee status.
+  Future<ReviewCycleDetailsModel> getReviewCycleDetails(int id) async {
+    final uri = Uri.parse('${ApiConstants.baseUrl}/api/review-cycles/$id/details');
+    final response = await _sendRequest('GET', uri);
+
+    if (response.statusCode == 200) {
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      return ReviewCycleDetailsModel.fromJson(body);
     } else {
       throw Exception(_extractErrorMessage(response));
     }

@@ -26,4 +26,6 @@ public class ReviewCycleRequest {
 
     @NotNull(message = "Status is required")
     private ReviewCycleStatus status;
+
+    private Long managerId;
 }

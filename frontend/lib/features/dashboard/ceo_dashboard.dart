@@ -12,6 +12,7 @@ import '../auth/login_screen.dart';
 import 'register_dialog.dart';
 import 'user_management_screen.dart';
 import 'create_user_screen.dart';
+import 'cycle_details_screen.dart';
 
 class CeoDashboard extends StatefulWidget {
   const CeoDashboard({super.key});
@@ -852,52 +853,68 @@ class _CeoDashboardState extends State<CeoDashboard> {
         final cycle = _cycles[index];
         final isActive = cycle.status == 'ACTIVE';
         
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        cycle.title,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: isActive ? const Color(0xFFDCFCE7) : const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        cycle.status,
-                        style: TextStyle(
-                          color: isActive ? const Color(0xFF15803D) : Colors.grey,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
+        return GestureDetector(
+          onTap: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => CycleDetailsScreen(
+                  cycleId: cycle.id,
+                  userRole: 'CEO',
+                  managers: _managers,
+                ),
+              ),
+            );
+            _fetchCycles();
+            _fetchMetrics();
+          },
+          child: Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          cycle.title,
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
                         ),
                       ),
-                    ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isActive ? const Color(0xFFDCFCE7) : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          cycle.status,
+                          style: TextStyle(
+                            color: isActive ? const Color(0xFF15803D) : Colors.grey,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (cycle.description != null && cycle.description!.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(cycle.description!, style: const TextStyle(fontSize: 13, color: AppTheme.subtitleColor)),
                   ],
-                ),
-                if (cycle.description != null && cycle.description!.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(cycle.description!, style: const TextStyle(fontSize: 13, color: AppTheme.subtitleColor)),
+                  const Divider(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Start: ${_formatDate(cycle.startDate)}', style: const TextStyle(fontSize: 12, color: Colors.black87)),
+                      Text('End: ${_formatDate(cycle.endDate)}', style: const TextStyle(fontSize: 12, color: Colors.black87)),
+                    ],
+                  ),
                 ],
-                const Divider(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Start: ${_formatDate(cycle.startDate)}', style: const TextStyle(fontSize: 12, color: Colors.black87)),
-                    Text('End: ${_formatDate(cycle.endDate)}', style: const TextStyle(fontSize: 12, color: Colors.black87)),
-                  ],
-                ),
-              ],
+              ),
             ),
           ),
         );
@@ -1012,6 +1029,7 @@ class _CeoDashboardState extends State<CeoDashboard> {
     DateTime? startDate;
     DateTime? endDate;
     String status = 'ACTIVE';
+    UserModel? selectedManager;
 
     showDialog(
       context: context,
@@ -1126,6 +1144,24 @@ class _CeoDashboardState extends State<CeoDashboard> {
                             }
                           },
                         ),
+                        const SizedBox(height: 16),
+                        const Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Assign Manager *',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppTheme.subtitleColor),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        SearchableManagerPicker(
+                          managers: _managers,
+                          selectedManager: selectedManager,
+                          onSelected: (mgr) {
+                            setDialogState(() {
+                              selectedManager = mgr;
+                            });
+                          },
+                        ),
                       ],
                     ),
                   ),
@@ -1147,6 +1183,10 @@ class _CeoDashboardState extends State<CeoDashboard> {
                       _showErrorSnackBar('End Date cannot be before Start Date');
                       return;
                     }
+                    if (selectedManager == null) {
+                      _showErrorSnackBar('Please select an assigned manager');
+                      return;
+                    }
 
                     Navigator.pop(context); // Close dialog
                     
@@ -1161,6 +1201,7 @@ class _CeoDashboardState extends State<CeoDashboard> {
                         startDate: DateFormat('yyyy-MM-dd').format(startDate!),
                         endDate: DateFormat('yyyy-MM-dd').format(endDate!),
                         status: status,
+                        managerId: selectedManager!.id,
                       );
                       
                       // Refresh dashboard pulse & cycles list

@@ -39,6 +39,7 @@ class AppTheme {
           borderSide: const BorderSide(color: accentColor, width: 2),
         ),
         labelStyle: const TextStyle(color: subtitleColor, fontSize: 14),
+        errorMaxLines: 3,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(

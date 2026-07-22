@@ -19,4 +19,6 @@ public class ReviewCycleResponse {
     private LocalDate endDate;
     private ReviewCycleStatus status;
     private LocalDateTime createdAt;
+    private Long managerId;
+    private String managerName;
 }

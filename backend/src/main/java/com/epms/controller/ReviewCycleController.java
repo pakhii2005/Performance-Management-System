@@ -3,6 +3,7 @@ package com.epms.controller;
 import org.springframework.security.access.prepost.PreAuthorize;
 import com.epms.dto.ReviewCycleRequest;
 import com.epms.dto.ReviewCycleResponse;
+import com.epms.dto.ReviewCycleDetailsResponse;
 import com.epms.service.ReviewCycleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -39,5 +40,19 @@ public class ReviewCycleController {
     public ResponseEntity<ReviewCycleResponse> getReviewCycleById(@PathVariable Long id) {
         ReviewCycleResponse cycle = reviewCycleService.findById(id);
         return ResponseEntity.ok(cycle);
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('CEO')")
+    public ResponseEntity<ReviewCycleResponse> updateReviewCycle(@PathVariable Long id, @Valid @RequestBody ReviewCycleRequest request) {
+        ReviewCycleResponse response = reviewCycleService.update(id, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}/details")
+    @PreAuthorize("hasAnyRole('CEO', 'MANAGER')")
+    public ResponseEntity<ReviewCycleDetailsResponse> getReviewCycleDetails(@PathVariable Long id) {
+        ReviewCycleDetailsResponse details = reviewCycleService.getDetails(id);
+        return ResponseEntity.ok(details);
     }
 }

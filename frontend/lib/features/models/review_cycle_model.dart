@@ -6,6 +6,8 @@ class ReviewCycleModel {
   final String endDate;
   final String status;
   final String createdAt;
+  final int? managerId;
+  final String? managerName;
 
   ReviewCycleModel({
     required this.id,
@@ -15,6 +17,8 @@ class ReviewCycleModel {
     required this.endDate,
     required this.status,
     required this.createdAt,
+    this.managerId,
+    this.managerName,
   });
 
   factory ReviewCycleModel.fromJson(Map<String, dynamic> json) {
@@ -26,6 +30,8 @@ class ReviewCycleModel {
       endDate: json['endDate'] as String? ?? '',
       status: json['status'] as String? ?? '',
       createdAt: json['createdAt'] as String? ?? '',
+      managerId: json['managerId'] as int?,
+      managerName: json['managerName'] as String?,
     );
   }
 }
